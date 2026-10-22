@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ug" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>قوغدۇغۇچى — ئۈسكۈنە ۋاقتى</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box }
+    body { margin:0; min-height:100dvh; font-family:system-ui,-apple-system,sans-serif;
+           padding:24px; background:var(--tg-theme-bg-color,#fcfcfc);
+           color:var(--tg-theme-text-color,#202020); display:flex; align-items:center; justify-content:center }
+    main { max-width:480px; width:100%; text-align:center }
+    .icon { font-size:48px; margin-bottom:14px }
+    h1 { font-size:22px; margin:0 0 16px }
+    p { line-height:1.8; }
+    .zone { direction:ltr; unicode-bidi:isolate; font-size:22px; font-weight:bold; word-wrap:break-word }
+    button { display:none; width:100%; padding:14px; border:0; border-radius:12px;
+             background:var(--tg-theme-button-color,#2476d8); color:var(--tg-theme-button-text-color,#fff);
+             font:inherit; font-weight:600; cursor:pointer }
+    small { display:block; opacity:.75; margin-top:18px; line-height:1.6 }
+  </style>
+</head>
+<body>
+<main>
+  <div class="icon" aria-hidden="true">🕒</div>
+  <h1>قوغدۇغۇچى — ئۈسكۈنە ۋاقتى</h1>
+  <p id="status">ۋاقىت رايونى ئېنىقلىنىۋاتىدۇ...</p>
+  <p class="zone" id="zone"></p>
+  <button id="retry" type="button">قايتا ئەۋەتىش</button>
+  <small>پەقەت ئۈسكۈنىڭىزنىڭ ۋاقىت رايونى بوتقا ئەۋەتىلىدۇ. GPS ئورنى ياكى شەخسىي ھۆججەتلەر ئوقۇلمايدۇ.</small>
+</main>
+<script>
+(function () {
+  'use strict';
+  const status = document.getElementById('status');
+  const zone = document.getElementById('zone');
+  const retry = document.getElementById('retry');
+  const app = window.Telegram && window.Telegram.WebApp;
+  function send() {
+    try {
+      if (!app || typeof app.sendData !== 'function') {
+        throw new Error('بۇ بەت Telegram نىڭ Mini App كۇنۇپكىسى ئارقىلىق ئېچىلىشى كېرەك.');
+      }
+      const name = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (!name || !/^[A-Za-z0-9_+.\/-]{1,80}$/.test(name)) {
+        throw new Error('ئۈسكۈنىنىڭ ۋاقىت رايونىنى بىلگىلى بولمىدى.');
+      }
+      zone.textContent = name;
+      status.textContent = 'بايقالغان ۋاقىت رايونى بوتقا يوللىنىۋاتىدۇ...';
+      retry.style.display = 'none';
+      app.sendData(JSON.stringify({kind:'qogdughuchi_device_timezone_v1', timezone:name}));
+      // Telegram closes the Mini App after sending, if launched by keyboard button.
+      setTimeout(function () {
+        status.textContent = 'ئەگەر Telegram بۇ بەتنى ياپمىغان بولسا، قايتا ئەۋەتىشنى بېسىڭ.';
+        retry.style.display = 'block';
+      }, 1600);
+    } catch (err) {
+      status.textContent = err.message || 'ئۇلىنىش مەغلۇپ بولدى';
+      retry.style.display = 'block';
+    }
+  }
+  retry.addEventListener('click', send);
+  if (app && typeof app.ready === 'function') { app.ready(); }
+  // No separate device-time consent form; the user's «ھەئە» click launched this page.
+  send();
+})();
+</script>
+</body>
+</html>
