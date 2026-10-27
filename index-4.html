@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ug" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>قوغدۇغۇچى — ئۈسكۈنە ۋاقتى</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:var(--tg-theme-bg-color,#191919);color:var(--tg-theme-text-color,#fff);font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
+main{width:100%;max-width:480px;text-align:center}
+.icon{font-size:60px;margin-bottom:20px}
+h1{font-size:23px;margin:0 0 20px}
+p{line-height:1.8;margin:0 0 24px}
+.clock{background:var(--tg-theme-secondary-bg-color,#292929);border-radius:16px;padding:22px;margin:22px 0 26px}
+.clock small{display:block;opacity:.75;margin-bottom:8px}
+#time{direction:ltr;unicode-bidi:isolate;font-size:38px;font-weight:700;font-variant-numeric:tabular-nums}
+button{width:100%;min-height:58px;border:0;border-radius:14px;background:var(--tg-theme-button-color,#e84d9c);color:var(--tg-theme-button-text-color,#fff);font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+.hint{display:block;opacity:.7;margin-top:24px;line-height:1.8}
+.error{color:#ff7373}
+</style>
+</head>
+<body>
+<main>
+<div class="icon" aria-hidden="true">🕒</div>
+<h1>قوغدۇغۇچى — ئۈسكۈنە ۋاقتى</h1>
+<p id="status" role="status" aria-live="polite">ئۈسكۈنىڭىزنىڭ ھازىرقى ۋاقتىنى تەكشۈرۈپ، ساقلاش كۇنۇپكىسىنى بېسىڭ.</p>
+<div class="clock"><small>ئۈسكۈنە ۋاقتى</small><div id="time">--:--</div></div>
+<button id="save" type="button" disabled>✅ ئۈسكۈنە ۋاقتىنى ساقلاش</button>
+<small class="hint">پەقەت ئۈسكۈنىڭىزنىڭ ۋاقىت تەڭشىكى بوتقا ئەۋەتىلىدۇ. GPS ئورنى ياكى شەخسىي ھۆججەتلەر ئوقۇلمايدۇ.</small>
+</main>
+<script>
+(function(){
+'use strict';
+const app=window.Telegram&&window.Telegram.WebApp;
+const save=document.getElementById('save');
+const status=document.getElementById('status');
+const timeEl=document.getElementById('time');
+const session=new URLSearchParams(window.location.search).get('session')||'';
+let zone='';
+let sending=false;
+function clock(){
+  const now=new Date();
+  timeEl.textContent=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',hour12:true}).format(now);
+}
+try {
+  zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+  if(!/^[A-Za-z0-9_+.\/-]{1,80}$/.test(zone))throw Error('ۋاقىت تەڭشىكىنى ئېنىقلىيالمىدۇق.');
+  clock();setInterval(clock,1000);
+  if(!/^[A-Za-z0-9_-]{16,64}$/.test(session)){
+    status.textContent='⚠️ ساقلاش ئۈچۈن بوتقا قايتىپ، «📱 ئۈسكۈنە ۋاقتى» نى، ئاندىن «✅ ھەئە» كۇنۇپكىسىنى بېسىڭ.';
+    status.classList.add('error');
+  }else if(app&&typeof app.sendData==='function'){
+    save.disabled=false;
+  }else{
+    status.textContent='⚠️ بۇ بەتنى Telegram دىكى بوتنىڭ «✅ ھەئە» كۇنۇپكىسى ئارقىلىق ئېچىڭ.';
+    status.classList.add('error');
+  }
+}catch(e){status.textContent=e.message||'ۋاقىتنى ئېنىقلىيالمىدۇق.';status.classList.add('error');}
+try{app?.ready?.();app?.expand?.();}catch(e){}
+save.addEventListener('click',function(){
+  if(save.disabled||sending||!zone||!app)return;
+  sending=true;
+  save.disabled=true;
+  status.textContent='ۋاقىت ساقلىنىۋاتىدۇ...';
+  status.classList.remove('error');
+  try {
+    // In reply-keyboard Mini Apps Telegram sends web_app_data and closes
+    // this page automatically. Do not preempt delivery with app.close().
+    app.sendData(JSON.stringify({
+      kind:'qogdughuchi_device_timezone_v1',
+      timezone:zone,
+      session_id:session
+    }));
+    // If an outside link was used or Telegram declined to send, do not
+    // leave the UI stuck in a false 'saving' state.
+    setTimeout(function(){
+      if(!document.hidden){
+        sending=false;
+        save.disabled=false;
+        status.textContent='⚠️ ساقلاش تاماملانمىدى. بوتقا قايتىپ «📱 ئۈسكۈنە ۋاقتى» دىن قايتا ئېچىڭ.';
+        status.classList.add('error');
+      }
+    },6000);
+  } catch(e){
+    sending=false;
+    save.disabled=false;
+    status.textContent='⚠️ ساقلاش مەغلۇپ بولدى. بوتتىن قايتا ئېچىڭ.';
+    status.classList.add('error');
+  }
+});
+})();
+</script>
+</body>
+</html>
