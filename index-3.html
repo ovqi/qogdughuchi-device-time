@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ug" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>قوغدۇغۇچى — ئۈسكۈنە ۋاقتى</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:var(--tg-theme-bg-color,#191919);color:var(--tg-theme-text-color,#fff);font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
+main{width:100%;max-width:480px;text-align:center}
+.icon{font-size:60px;margin-bottom:20px}
+h1{font-size:23px;margin:0 0 20px}
+p{line-height:1.8;margin:0 0 24px}
+.clock{background:var(--tg-theme-secondary-bg-color,#292929);border-radius:16px;padding:22px;margin:22px 0 26px}
+.clock small{display:block;opacity:.75;margin-bottom:8px}
+#time{direction:ltr;unicode-bidi:isolate;font-size:38px;font-weight:700;font-variant-numeric:tabular-nums}
+button{width:100%;min-height:58px;border:0;border-radius:14px;background:var(--tg-theme-button-color,#e84d9c);color:var(--tg-theme-button-text-color,#fff);font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+.hint{display:block;opacity:.7;margin-top:24px;line-height:1.8}
+.error{color:#ff7373}
+</style>
+</head>
+<body>
+<main>
+<div class="icon" aria-hidden="true">🕒</div>
+<h1>قوغدۇغۇچى — ئۈسكۈنە ۋاقتى</h1>
+<p id="status" role="status" aria-live="polite">ئۈسكۈنىڭىزنىڭ ھازىرقى ۋاقتىنى تەكشۈرۈپ، ساقلاش كۇنۇپكىسىنى بېسىڭ.</p>
+<div class="clock"><small>ئۈسكۈنە ۋاقتى</small><div id="time">--:--</div></div>
+<button id="save" type="button" disabled>✅ ئۈسكۈنە ۋاقتىنى ساقلاش</button>
+<small class="hint">پەقەت ئۈسكۈنىڭىزنىڭ ۋاقىت رايونى بوتقا ئەۋەتىلىدۇ. GPS ئورنى ياكى شەخسىي ھۆججەتلەر ئوقۇلمايدۇ.</small>
+</main>
+<script>
+(function(){
+'use strict';
+const app=window.Telegram&&window.Telegram.WebApp;
+const save=document.getElementById('save');
+const status=document.getElementById('status');
+const timeEl=document.getElementById('time');
+let zone='';
+function clock(){
+  const now=new Date();
+  timeEl.textContent=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',hour12:true}).format(now);
+}
+try {
+  zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+  if(!/^[A-Za-z0-9_+.\/-]{1,80}$/.test(zone))throw Error('ۋاقىت رايونىنى ئېنىقلىيالمىدۇق.');
+  clock();setInterval(clock,1000);
+  if(app&&typeof app.sendData==='function')save.disabled=false;
+  else {status.textContent='⚠️ بۇ بەتنى بوتتىكى «✅ ھەئە» كۇنۇپكىسى ئارقىلىق ئېچىڭ.';status.classList.add('error');}
+}catch(e){status.textContent=e.message||'ۋاقىتنى ئېنىقلىيالمىدۇق.';status.classList.add('error');}
+try{app?.ready?.();app?.expand?.();}catch(e){}
+save.addEventListener('click',function(){
+  if(save.disabled||!zone||!app)return;
+  save.disabled=true;
+  status.textContent='ۋاقىت بوتقا ئەۋەتىلىۋاتىدۇ...';
+  try {
+    // Telegram reply-keyboard Web Apps: sendData posts web_app_data and closes the Mini App.
+    app.sendData(JSON.stringify({kind:'qogdughuchi_device_timezone_v1',timezone:zone}));
+  } catch(e){save.disabled=false;status.textContent='⚠️ ساقلاش مەغلۇپ بولدى. قايتا سىناڭ.';status.classList.add('error');}
+});
+})();
+</script>
+</body>
+</html>
